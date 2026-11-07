@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { BackButton, TopBar, toast } from '../components'
+import { BackButton, TopBar, celebrate, toast } from '../components'
 import { db, now, saveMessage } from '../lib/db'
 import { buildHtml, buildText, historyFor, mailtoUrl } from '../lib/newsletter'
 import { copyRich, copyText, formatDate, isIOS, recipientEmails, useSettings } from '../lib/util'
@@ -29,24 +29,25 @@ export default function SendView({ id }: { id: number }) {
   async function openMail() {
     await copyRich(html, text)
     setOpened(true)
-    toast('Newsletter kopiert – in der Mail einsetzen')
+    toast('Newsletter kopiert – in der Mail einsetzen 📋')
     window.location.href = mailto
   }
 
   async function copyNewsletter() {
     await copyRich(html, text)
-    toast('Newsletter kopiert')
+    toast('Newsletter kopiert 📋')
   }
 
   async function copyAddresses() {
     await copyText(recipients.join(', '))
-    toast(`${recipients.length} Adressen kopiert`)
+    toast(`${recipients.length} Adressen kopiert 📋`)
   }
 
   async function markSent() {
     if (!message) return
     await saveMessage({ ...message, status: 'versendet', sentAt: now(), recipientCount: recipients.length })
-    toast('Im Archiv gespeichert')
+    toast('Verschickt! Die Eltern freuen sich 💌')
+    celebrate()
   }
 
   return (
@@ -56,15 +57,15 @@ export default function SendView({ id }: { id: number }) {
         title={isSent ? 'Archiv' : 'Versenden'}
         left={<BackButton to="/nachrichten" />}
         right={
-          <a className="link-btn" href={`#/nachricht/${message.id}`} style={{ textDecoration: 'none' }}>
+          <a className="link-btn" href={`#/nachricht/${message.id}`}>
             Bearbeiten
           </a>
         }
       />
 
       {isSent && (
-        <div className="notice info">
-          <span>✅</span>
+        <div className="notice ok">
+          <span>🎉</span>
           <span className="grow">
             Versendet am {formatDate(message.sentAt)} an {message.recipientCount} Adressen.
           </span>
@@ -94,7 +95,7 @@ export default function SendView({ id }: { id: number }) {
                 ✉️ Mail-App öffnen
               </button>
               {tooLong && (
-                <p className="hint" style={{ color: 'var(--warn)' }}>
+                <p className="hint warn">
                   Sehr viele Adressen: Falls die Mail-App nicht alle übernimmt, nutze unten „Adressen kopieren“ und füge sie ins BCC-Feld ein.
                 </p>
               )}
@@ -115,8 +116,8 @@ export default function SendView({ id }: { id: number }) {
       </div>
 
       <div className="card">
-        <h2>Andere Wege</h2>
-        <p className="hint" style={{ marginTop: 0, marginBottom: 12 }}>
+        <h2>🧭 Andere Wege</h2>
+        <p className="hint field-gap">
           Mit Anhängen ist es oft am einfachsten, die Original-Mail der Kita-Leitung in der Mail-App weiterzuleiten und nur die
           Adressen ins BCC-Feld einzufügen.
         </p>
@@ -134,7 +135,7 @@ export default function SendView({ id }: { id: number }) {
         {showAddresses && <div className="recipients">{recipients.join(', ') || 'Keine Adressen'}</div>}
       </div>
 
-      <div className="section-title">Vorschau</div>
+      <div className="section-title">👀 Vorschau</div>
       <iframe
         className="preview"
         title="Vorschau"

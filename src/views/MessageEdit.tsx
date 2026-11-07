@@ -62,7 +62,7 @@ export default function MessageEdit({ id }: { id?: number }) {
 
   async function saveDraft() {
     await persist()
-    toast('Gespeichert')
+    toast('Entwurf gesichert ✏️')
     go('/nachrichten')
   }
 
@@ -84,7 +84,7 @@ export default function MessageEdit({ id }: { id?: number }) {
   function applyPaste(text: string) {
     const parsed = parseForwarded(text)
     set({ body: parsed.body, subject: message!.subject || parsed.subject || '' })
-    toast(parsed.subject ? 'Text und Betreff übernommen' : 'Text übernommen')
+    toast(parsed.subject ? 'Text und Betreff übernommen ✨' : 'Text übernommen ✨')
   }
 
   async function remove() {
@@ -123,10 +123,10 @@ export default function MessageEdit({ id }: { id?: number }) {
       <div className="card">
         {message.source === 'kita' && (
           <>
-            <button className="btn block" onClick={pasteFromClipboard} style={{ marginBottom: 6 }}>
+            <button className="btn block" onClick={pasteFromClipboard}>
               📋 Kopierte Mail einfügen
             </button>
-            <p className="hint" style={{ marginBottom: 14 }}>
+            <p className="hint field-gap">
               Mail der Kita-Leitung öffnen, Text markieren und kopieren – dann hier tippen. Betreff und Kopfzeilen werden automatisch erkannt.
             </p>
           </>
@@ -165,7 +165,7 @@ export default function MessageEdit({ id }: { id?: number }) {
           />
         </label>
 
-        <label className="field" style={{ marginBottom: 0 }}>
+        <label className="field">
           <span>Anhänge (optional)</span>
           <input
             value={message.attachmentsNote ?? ''}
@@ -178,8 +178,8 @@ export default function MessageEdit({ id }: { id?: number }) {
 
       {groups.length > 0 && (
         <>
-          <div className="section-title">Empfänger</div>
-          <div className="chips" style={{ flexWrap: 'wrap' }}>
+          <div className="section-title">👥 Empfänger</div>
+          <div className="chips wrap">
             <button className={`chip ${message.groups.length === 0 ? 'on' : ''}`} onClick={() => set({ groups: [] })}>
               Alle
             </button>
@@ -191,11 +191,11 @@ export default function MessageEdit({ id }: { id?: number }) {
           </div>
         </>
       )}
-      <p className="stats">Geht an {count} E-Mail-Adressen.</p>
+      <p className="stats">💌 Geht an {count} E-Mail-Adressen.</p>
 
       <div className="actions">
         <button className="btn primary block" onClick={next} disabled={!canContinue}>
-          Weiter zur Vorschau
+          Weiter zur Vorschau →
         </button>
         <button className="btn danger block" onClick={remove}>
           {message.id ? 'Nachricht löschen' : 'Verwerfen'}

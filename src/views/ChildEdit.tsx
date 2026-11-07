@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { BackButton, Sheet, TopBar, toast } from '../components'
+import { BackButton, Sheet, TopBar, colorOf, toast } from '../components'
 import {
   db,
   deleteChild,
@@ -89,7 +89,8 @@ export default function ChildEdit({ id }: { id?: number }) {
     if (!child || !canSave) return
     if (absorb.length) await mergeChildren(cleaned(), absorb)
     else await saveChild(cleaned())
-    toast(id === undefined ? 'Kind hinzugefügt' : 'Gespeichert')
+    const name = child.name.trim()
+    toast(id === undefined || wasOpen ? `${name || 'Neuer Eintrag'} ist dabei! 🎈` : 'Gespeichert ✨')
     go('/kinder')
   }
 
@@ -98,7 +99,7 @@ export default function ChildEdit({ id }: { id?: number }) {
     if (!child) return
     const sources = [...(child.id !== undefined ? [child.id] : []), ...absorb]
     await mergeChildren({ ...target, contacts: [...target.contacts, ...cleaned().contacts] }, sources)
-    toast(`Zu ${target.name} hinzugefügt`)
+    toast(`Zu ${target.name} hinzugefügt 🤝`)
     go('/kinder')
   }
 
@@ -165,7 +166,7 @@ export default function ChildEdit({ id }: { id?: number }) {
           </div>
         )}
         {wasOpen && !child.name.trim() && namedOthers.length > 0 && (
-          <button className="btn block small" style={{ marginBottom: 14 }} onClick={() => setPicker('kind')}>
+          <button className="btn block small field-gap" onClick={() => setPicker('kind')}>
             ↪ Gehört zu einem anderen Kind
           </button>
         )}
@@ -186,7 +187,7 @@ export default function ChildEdit({ id }: { id?: number }) {
         </div>
       </div>
 
-      <div className="section-title">Kontakte</div>
+      <div className="section-title">👪 Kontakte</div>
       <div className="card">
         {child.contacts.length === 0 && <p className="hint">Noch keine Kontakte.</p>}
         {child.contacts.map((contact) => {
@@ -233,7 +234,7 @@ export default function ChildEdit({ id }: { id?: number }) {
             ))}
           </div>
         )}
-        <div className="button-row" style={{ marginTop: 12 }}>
+        <div className="button-row">
           <button className="btn small" onClick={() => addContact('email')}>
             + E-Mail
           </button>
@@ -246,26 +247,26 @@ export default function ChildEdit({ id }: { id?: number }) {
             </button>
           )}
         </div>
-        {invalidEmails.length > 0 && <p className="hint" style={{ color: 'var(--danger)' }}>Bitte E-Mail-Adresse prüfen.</p>}
+        {invalidEmails.length > 0 && <p className="hint danger">Hoppla – bitte die E-Mail-Adresse prüfen.</p>}
       </div>
 
-      <div className="section-title">Notiz</div>
+      <div className="section-title">📝 Notiz</div>
       <div className="card">
         <textarea
           value={child.note ?? ''}
           onChange={(e) => set({ note: e.target.value })}
+          className="short"
           placeholder="z. B. „Aufnahme per Mail gewünscht am 12.10.“"
-          style={{ minHeight: 80 }}
         />
       </div>
 
       {id !== undefined && (
         <>
-          <div className="section-title">Status</div>
+          <div className="section-title">🚦 Status</div>
           <div className="card">
             {child.active ? (
               <>
-                <p style={{ marginTop: 0 }}>
+                <p>
                   <span className="badge ok">Aktiv</span> bekommt alle Nachrichten.
                 </p>
                 <button className="btn block" onClick={() => setActive(false)}>
@@ -274,7 +275,7 @@ export default function ChildEdit({ id }: { id?: number }) {
               </>
             ) : (
               <>
-                <p style={{ marginTop: 0 }}>
+                <p>
                   <span className="badge">Ausgetreten</span> {child.leftAt ? `seit ${formatDate(child.leftAt)}` : ''} – bekommt keine Mails.
                 </p>
                 <button className="btn block" onClick={() => setActive(true)}>
@@ -338,13 +339,13 @@ function Picker({
     <Sheet title={title} onClose={onClose}>
       <input className="search" type="search" placeholder="Suchen" value={query} onChange={(e) => setQuery(e.target.value)} />
       <div className="list">
-        {sorted.length === 0 && <div className="empty">Nichts gefunden.</div>}
+        {sorted.length === 0 && <div className="empty small">Nichts gefunden.</div>}
         {sorted.map((c) => {
           const persons = [...new Set(c.contacts.map((k) => k.person).filter(Boolean))].join(', ')
           const open = isOpen(c)
           return (
             <button key={c.id} className="row" onClick={() => onPick(c)}>
-              <div className={`avatar ${open ? 'open' : ''}`}>{open ? '?' : c.name.trim().charAt(0).toUpperCase()}</div>
+              <div className={`avatar ${open ? 'open' : colorOf(c.name)}`}>{open ? '?' : c.name.trim().charAt(0).toUpperCase()}</div>
               <div className="main">
                 <div className={`title ${open ? 'light' : ''}`}>{displayName(c)}</div>
                 {(persons || !open) && <div className="sub">{persons || firstEmail(c)}</div>}

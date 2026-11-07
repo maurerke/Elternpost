@@ -1,5 +1,6 @@
+import { useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { IconMail, IconPeople, IconSettings, Toast } from './components'
+import { Confetti, IconMail, IconPeople, IconSettings, Toast } from './components'
 import { db } from './lib/db'
 import { daysSince, useRoute, useSettings } from './lib/util'
 import ChildrenView from './views/ChildrenView'
@@ -17,6 +18,11 @@ export default function App() {
   const [section = 'kinder', param] = useRoute()
   const tab = ['kind', 'kinder', 'import', 'zuordnen'].includes(section) ? 'kinder' : ['einstellungen'].includes(section) ? 'einstellungen' : 'nachrichten'
   const isMainScreen = ['kinder', 'nachrichten', 'einstellungen'].includes(section)
+
+  // Jeder Bereich hat seine eigene Farbe (siehe styles.css).
+  useEffect(() => {
+    document.documentElement.dataset.section = tab
+  }, [tab])
 
   let view
   switch (section) {
@@ -47,27 +53,41 @@ export default function App() {
 
   return (
     <>
+      <div className="bg-deco" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </div>
       <main className="app">
-        {isMainScreen && section !== 'einstellungen' && <BackupReminder />}
-        {view}
+        <div className="view" key={`${section}/${param ?? ''}`}>
+          {isMainScreen && section !== 'einstellungen' && <BackupReminder />}
+          {view}
+        </div>
       </main>
       <div className="tabbar">
         <nav>
-          <a href="#/kinder" className={tab === 'kinder' ? 'active' : ''}>
-            <IconPeople />
+          <a href="#/kinder" className={`t-kinder ${tab === 'kinder' ? 'active' : ''}`}>
+            <span className="pill">
+              <IconPeople />
+            </span>
             Verteiler
           </a>
-          <a href="#/nachrichten" className={tab === 'nachrichten' ? 'active' : ''}>
-            <IconMail />
+          <a href="#/nachrichten" className={`t-nachrichten ${tab === 'nachrichten' ? 'active' : ''}`}>
+            <span className="pill">
+              <IconMail />
+            </span>
             Nachrichten
           </a>
-          <a href="#/einstellungen" className={tab === 'einstellungen' ? 'active' : ''}>
-            <IconSettings />
+          <a href="#/einstellungen" className={`t-einstellungen ${tab === 'einstellungen' ? 'active' : ''}`}>
+            <span className="pill">
+              <IconSettings />
+            </span>
             Einstellungen
           </a>
         </nav>
       </div>
       <Toast />
+      <Confetti />
     </>
   )
 }
@@ -83,9 +103,9 @@ function BackupReminder() {
     <div className="notice">
       <span>💾</span>
       <span className="grow">
-        {settings.lastBackupAt ? `Letzte Sicherung vor ${days} Tagen.` : 'Noch keine Sicherung erstellt.'}
+        {settings.lastBackupAt ? `Letzte Sicherung vor ${days} Tagen – kurz sichern?` : 'Noch keine Sicherung – 10 Sekunden, dann ist alles sicher.'}
       </span>
-      <a className="btn small" href="#/einstellungen">
+      <a className="btn small primary" href="#/einstellungen">
         Sichern
       </a>
     </div>

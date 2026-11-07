@@ -1,10 +1,28 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
-export function TopBar({ title, left, right, small }: { title: string; left?: ReactNode; right?: ReactNode; small?: boolean }) {
+export function TopBar({
+  title,
+  left,
+  right,
+  small,
+  icon,
+  kicker,
+}: {
+  title: string
+  left?: ReactNode
+  right?: ReactNode
+  small?: boolean
+  icon?: ReactNode
+  kicker?: ReactNode
+}) {
   if (!small) {
     return (
       <header className="topbar">
-        <h1>{title}</h1>
+        {icon && <div className="title-icon">{icon}</div>}
+        <div className="heading">
+          {kicker && <div className="kicker">{kicker}</div>}
+          <h1>{title}</h1>
+        </div>
         {right}
       </header>
     )
@@ -18,16 +36,33 @@ export function TopBar({ title, left, right, small }: { title: string; left?: Re
   )
 }
 
+/** Freundliche Begrüßung je nach Tageszeit. */
+export function greeting(date = new Date()) {
+  const h = date.getHours()
+  if (h < 5) return 'Noch wach? 🌙'
+  if (h < 11) return 'Guten Morgen ☀️'
+  if (h < 14) return 'Hallo 👋'
+  if (h < 18) return 'Schönen Nachmittag 🌼'
+  return 'Guten Abend 🌙'
+}
+
+/** Feste Farbe (c0–c7) für einen Namen – jedes Kind, jede Gruppe behält ihre Farbe. */
+export function colorOf(text = '') {
+  let hash = 0
+  for (const ch of text.trim().toLowerCase()) hash = (hash * 31 + ch.charCodeAt(0)) | 0
+  return `c${Math.abs(hash) % 8}`
+}
+
 /* ---------- Kurze Hinweise unten am Bildschirm ---------- */
 
 export const toast = (message: string) => window.dispatchEvent(new CustomEvent('toast', { detail: message }))
 
 export function Toast() {
-  const [message, setMessage] = useState<string | null>(null)
+  const [message, setMessage] = useState<{ text: string; key: number } | null>(null)
   useEffect(() => {
     let timer: number | undefined
     const onToast = (e: Event) => {
-      setMessage((e as CustomEvent<string>).detail)
+      setMessage({ text: (e as CustomEvent<string>).detail, key: Date.now() })
       clearTimeout(timer)
       timer = window.setTimeout(() => setMessage(null), 2600)
     }
@@ -35,16 +70,95 @@ export function Toast() {
     return () => window.removeEventListener('toast', onToast)
   }, [])
   return message ? (
-    <div className="toast" role="status">
-      {message}
+    <div className="toast" role="status" key={message.key}>
+      {message.text}
     </div>
   ) : null
+}
+
+/* ---------- Konfetti für die schönen Momente ---------- */
+
+export const celebrate = () => window.dispatchEvent(new CustomEvent('celebrate'))
+
+const CONFETTI_COLORS = ['#ff6b5b', '#ffc93c', '#2ec4a6', '#5457e8', '#ff85bf', '#8650e6', '#4cc9f0', '#ff9f1c']
+
+export function Confetti() {
+  const canvas = useRef<HTMLCanvasElement>(null)
+  const [active, setActive] = useState(0)
+
+  useEffect(() => {
+    const onCelebrate = () => {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+      setActive(Date.now())
+    }
+    window.addEventListener('celebrate', onCelebrate)
+    return () => window.removeEventListener('celebrate', onCelebrate)
+  }, [])
+
+  useEffect(() => {
+    const el = canvas.current
+    if (!active || !el) return
+    const ctx = el.getContext('2d')
+    if (!ctx) return
+    const dpr = window.devicePixelRatio || 1
+    const w = window.innerWidth
+    const h = window.innerHeight
+    el.width = w * dpr
+    el.height = h * dpr
+    ctx.scale(dpr, dpr)
+
+    const pieces = Array.from({ length: 140 }, (_, i) => {
+      const fromLeft = i % 2 === 0
+      return {
+        x: fromLeft ? -10 : w + 10,
+        y: h * (0.55 + Math.random() * 0.25),
+        vx: (fromLeft ? 1 : -1) * (4 + Math.random() * 7),
+        vy: -(9 + Math.random() * 9),
+        size: 6 + Math.random() * 7,
+        rot: Math.random() * Math.PI,
+        vr: (Math.random() - 0.5) * 0.3,
+        color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+        round: Math.random() < 0.3,
+      }
+    })
+
+    let frame = 0
+    let raf = 0
+    const tick = () => {
+      frame++
+      ctx.clearRect(0, 0, w, h)
+      for (const p of pieces) {
+        p.vy += 0.32
+        p.vx *= 0.985
+        p.x += p.vx
+        p.y += p.vy
+        p.rot += p.vr
+        ctx.save()
+        ctx.translate(p.x, p.y)
+        ctx.rotate(p.rot)
+        ctx.fillStyle = p.color
+        ctx.globalAlpha = Math.max(0, 1 - frame / 150)
+        if (p.round) {
+          ctx.beginPath()
+          ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2)
+          ctx.fill()
+        } else ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2)
+        ctx.restore()
+      }
+      if (frame < 150) raf = requestAnimationFrame(tick)
+      else setActive(0)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [active])
+
+  return active ? <canvas ref={canvas} className="confetti" aria-hidden="true" style={{ width: '100%', height: '100%' }} /> : null
 }
 
 /* ---------- Icons ---------- */
 
 const svg = (path: ReactNode) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     {path}
   </svg>
 )
@@ -75,14 +189,6 @@ export const IconSettings = () =>
     </>,
   )
 
-export function BackButton({ to, label = 'Zurück' }: { to: string; label?: string }) {
-  return (
-    <a className="link-btn" href={`#${to}`} style={{ textDecoration: 'none' }}>
-      ‹ {label}
-    </a>
-  )
-}
-
 export const IconImport = () =>
   svg(
     <>
@@ -91,6 +197,18 @@ export const IconImport = () =>
       <path d="M4.5 15.5v2A2.5 2.5 0 0 0 7 20h10a2.5 2.5 0 0 0 2.5-2.5v-2" />
     </>,
   )
+
+export const IconPlus = () => svg(<path d="M12 5v14M5 12h14" />)
+
+const IconBack = () => svg(<path d="M15 5l-7 7 7 7" />)
+
+export function BackButton({ to, label = 'Zurück' }: { to: string; label?: string }) {
+  return (
+    <a className="link-btn back" href={`#${to}`}>
+      <IconBack /> {label}
+    </a>
+  )
+}
 
 /* ---------- Auswahlfenster von unten ---------- */
 
@@ -119,6 +237,8 @@ export function Sheet({ title, onClose, children }: { title: string; onClose: ()
   )
 }
 
+/* ---------- Fortschritt ---------- */
+
 export function Progress({ value, max }: { value: number; max: number }) {
   return (
     <div className="progress" role="progressbar" aria-valuenow={value} aria-valuemax={max}>
@@ -126,3 +246,24 @@ export function Progress({ value, max }: { value: number; max: number }) {
     </div>
   )
 }
+
+/** Fortschritt mit Text und Prozent – kleine Etappenziele motivieren. */
+export function ProgressBox({ value, max, label }: { value: number; max: number; label?: ReactNode }) {
+  const pct = max ? Math.round((value / max) * 100) : 0
+  const left = max - value
+  const cheer =
+    left === 0 ? 'Alles geschafft! 🎉' : pct >= 75 ? `Fast fertig – nur noch ${left}! 💪` : pct >= 40 ? 'Läuft super! 🚀' : 'Los geht’s! ✨'
+  return (
+    <div className="progress-box">
+      <div className="progress-label">
+        <span>{label ?? cheer}</span>
+        <span className="pct">{pct} %</span>
+      </div>
+      <Progress value={value} max={max} />
+    </div>
+  )
+}
+
+/** Gemischte Glückwünsche – Abwechslung macht Erfolge spürbarer. */
+const CHEERS = ['Super!', 'Klasse!', 'Prima!', 'Spitze!', 'Toll!', 'Juhu!']
+export const cheer = () => CHEERS[Math.floor(Math.random() * CHEERS.length)]

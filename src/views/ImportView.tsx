@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { BackButton, IconImport, TopBar, toast } from '../components'
+import { BackButton, IconImport, TopBar, celebrate, toast } from '../components'
 import { db, displayName } from '../lib/db'
 import { applyImport, parseAny, planImport, type ImportRow } from '../lib/importer'
 import { go } from '../lib/util'
@@ -27,7 +27,8 @@ export default function ImportView() {
   async function run() {
     if (!plan) return
     await applyImport(plan)
-    toast(plan.created.length ? `${plan.created.length} Adressen importiert` : 'Verteiler ergänzt')
+    toast(plan.created.length ? `${plan.created.length} Adressen importiert 🎉` : 'Verteiler ergänzt ✨')
+    celebrate()
     go('/kinder')
   }
 
@@ -58,9 +59,11 @@ export default function ImportView() {
               if (file) readFile(file)
             }}
           >
-            <IconImport />
+            <span className="drop-icon">
+              <IconImport />
+            </span>
             <b>Kontakte-Datei wählen</b>
-            <span>.vcf</span>
+            <span>.vcf-Datei antippen oder hierher ziehen</span>
           </button>
           <input
             ref={fileInput}
@@ -77,7 +80,6 @@ export default function ImportView() {
           <details className="card">
             <summary>oder Adressen einfügen</summary>
             <textarea
-              style={{ marginTop: 12 }}
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder={'anna@example.de\nmax@example.de\nEmma Müller; Anna Müller; anna@example.de'}
@@ -87,6 +89,7 @@ export default function ImportView() {
       ) : !plan ? null : newCount === 0 ? (
         <div className="empty">
           <div className="big">{plan.known ? '✅' : '🤷'}</div>
+          <h2>{plan.known ? 'Schon alles da!' : 'Hmm …'}</h2>
           <p>{plan.known ? 'Alle Adressen sind schon im Verteiler.' : 'Keine E-Mail-Adressen gefunden.'}</p>
           <button className="btn" onClick={reset}>
             Andere Datei
@@ -95,9 +98,11 @@ export default function ImportView() {
       ) : (
         <>
           <div className="card import-summary">
-            {fileName && <div className="hint" style={{ margin: '0 0 6px' }}>📇 {fileName}</div>}
+            {fileName && <div className="hint field-gap">📇 {fileName}</div>}
             <div className="big-number">{plan.created.length}</div>
-            <div>neue Adressen</div>
+            <div>
+              <b>neue Adressen</b> 🎉
+            </div>
             {(plan.known > 0 || plan.extended.length > 0) && (
               <div className="hint">
                 {[plan.known > 0 && `${plan.known} schon da`, plan.extended.length > 0 && `${plan.extended.length} ergänzt`]
@@ -122,7 +127,7 @@ export default function ImportView() {
 
           <div className="actions">
             <button className="btn primary block" onClick={run}>
-              Importieren
+              Jetzt importieren
             </button>
             <button className="btn block" onClick={reset}>
               Andere Datei

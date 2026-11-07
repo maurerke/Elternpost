@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { IconImport, Progress, TopBar, toast } from '../components'
+import { IconImport, IconPeople, IconPlus, ProgressBox, TopBar, colorOf, greeting, toast } from '../components'
 import { db, firstEmail, isOpen, touch, type Child } from '../lib/db'
 import { daysSince, go, groupsOf, recipientEmails, useSettings } from '../lib/util'
 
@@ -38,7 +38,7 @@ export default function ChildrenView() {
     if (!confirm(`${expired.length} ausgetretene Kinder mit allen Kontaktdaten endgültig löschen?`)) return
     await db.children.bulkDelete(expired.map((c) => c.id!))
     await touch()
-    toast('Gelöscht')
+    toast('Aufgeräumt 🧹')
   }
 
   const importButton = (
@@ -47,12 +47,16 @@ export default function ChildrenView() {
     </a>
   )
 
+  const header = (right?: ReactNode) => <TopBar title="Verteiler" kicker={greeting()} icon={<IconPeople />} right={right} />
+
   if (children.length === 0) {
     return (
       <>
-        <TopBar title="Verteiler" />
+        {header()}
         <div className="empty start">
-          <div className="big">📇</div>
+          <div className="big">🎒</div>
+          <h2>Willkommen bei Elternpost!</h2>
+          <p>Hol dir zuerst die Eltern-Adressen rein – danach erreichst du alle mit einem Fingertipp.</p>
           <div className="actions">
             <a className="btn primary block" href="#/import">
               <IconImport /> Verteiler importieren
@@ -68,7 +72,7 @@ export default function ChildrenView() {
 
   return (
     <>
-      <TopBar title="Verteiler" right={importButton} />
+      {header(importButton)}
 
       {expired.length > 0 && (
         <div className="notice">
@@ -86,13 +90,38 @@ export default function ChildrenView() {
       {openCount > 0 && (
         <a className="card todo" href="#/zuordnen">
           <div className="grow">
-            <div className="todo-title">
-              <b>{openCount}</b> {openCount === 1 ? 'Adresse' : 'Adressen'} ohne Kind
-            </div>
-            <Progress value={active.length - openCount} max={active.length} />
+            <ProgressBox
+              value={active.length - openCount}
+              max={active.length}
+              label={
+                <>
+                  🧩 <b>{openCount}</b> {openCount === 1 ? 'Adresse' : 'Adressen'} ohne Kind
+                </>
+              }
+            />
           </div>
           <span className="btn primary small">Zuordnen</span>
         </a>
+      )}
+
+      {filter === 'aktiv' && (
+        <div className="tiles">
+          <div className="tile c1">
+            <div className="num">{active.length - openCount}</div>
+            <div className="label">Kinder</div>
+            <span className="deco">🧸</span>
+          </div>
+          <div className="tile c0">
+            <div className="num">{recipientEmails(children).length}</div>
+            <div className="label">E-Mails</div>
+            <span className="deco">💌</span>
+          </div>
+          <div className="tile c2">
+            <div className="num">{groups.length}</div>
+            <div className="label">{groups.length === 1 ? 'Gruppe' : 'Gruppen'}</div>
+            <span className="deco">🎨</span>
+          </div>
+        </div>
       )}
 
       <input
@@ -127,14 +156,18 @@ export default function ChildrenView() {
         </div>
       )}
 
-      {filter === 'aktiv' && (
+      {filter === 'aktiv' && group && (
         <p className="stats">
-          {active.length - openCount} Kinder · {recipientEmails(children, group ? [group] : []).length} ✉︎
-          {group ? ` in „${group}“` : ''}
+          {named.length} Kinder · {recipientEmails(children, [group]).length} E-Mails in „{group}“
         </p>
       )}
 
-      {named.length === 0 && open.length === 0 && <div className="empty">Nichts gefunden.</div>}
+      {named.length === 0 && open.length === 0 && (
+        <div className="empty small">
+          <div className="big">🔍</div>
+          <p>Hier ist nichts – versuch’s mit einem anderen Suchwort.</p>
+        </div>
+      )}
 
       {named.length > 0 && (
         <div className="list">
@@ -146,7 +179,9 @@ export default function ChildrenView() {
 
       {open.length > 0 && (
         <>
-          <div className="section-title">Ohne Kind ({open.length})</div>
+          <div className="section-title">
+            🧩 Ohne Kind <span className="count">{open.length}</span>
+          </div>
           <div className="list">
             {open.map((child) => (
               <ChildRow key={child.id} child={child} />
@@ -155,8 +190,8 @@ export default function ChildrenView() {
         </>
       )}
 
-      <button className="fab" aria-label="Kind hinzufügen" onClick={() => go('/kind/neu')}>
-        +
+      <button className="fab" aria-label="Kind hinzufügen" title="Kind hinzufügen" onClick={() => go('/kind/neu')}>
+        <IconPlus />
       </button>
     </>
   )
@@ -183,15 +218,15 @@ function ChildRow({ child }: { child: Child }) {
     )
   }
 
-  const parts = [persons.join(', '), emails ? `${emails} ✉︎` : '', phones ? `${phones} ☎︎` : ''].filter(Boolean)
+  const parts = [persons.join(', '), emails ? `${emails} ✉️` : '', phones ? `${phones} 📞` : ''].filter(Boolean)
   return (
     <a className="row" href={`#/kind/${child.id}`}>
-      <div className={`avatar ${child.active ? '' : 'off'}`}>{child.name.trim().charAt(0).toUpperCase()}</div>
+      <div className={`avatar ${colorOf(child.name)} ${child.active ? '' : 'off'}`}>{child.name.trim().charAt(0).toUpperCase()}</div>
       <div className="main">
         <div className="title">{child.name}</div>
         <div className="sub">{parts.join(' · ') || 'Keine Kontaktdaten'}</div>
       </div>
-      {child.group && <span className="badge">{child.group}</span>}
+      {child.group && <span className={`badge ${colorOf(child.group)}`}>{child.group}</span>}
       {emails === 0 && child.active && <span className="badge warn">keine Mail</span>}
       <span className="chev">›</span>
     </a>

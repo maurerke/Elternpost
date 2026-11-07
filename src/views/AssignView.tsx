@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { BackButton, Progress, TopBar, toast } from '../components'
+import { BackButton, ProgressBox, TopBar, celebrate, toast } from '../components'
 import { db, deleteChild, firstEmail, isOpen, mergeChildren, type Child } from '../lib/db'
 import { guessPerson, relatedNamed, relatedOpen } from '../lib/guess'
 
@@ -32,10 +32,10 @@ export default function AssignView() {
       small
       title="Zuordnen"
       left={<BackButton to="/kinder" label="Verteiler" />}
-      right={<span className="badge">{open.length} offen</span>}
+      right={<span className="badge accent">{open.length} offen</span>}
     />
   )
-  const progress = <Progress value={active.length - open.length} max={active.length} />
+  const progress = <ProgressBox value={active.length - open.length} max={active.length} />
 
   if (!current) {
     return (
@@ -43,9 +43,10 @@ export default function AssignView() {
         {header}
         {progress}
         <div className="empty">
-          <div className="big">{open.length ? '☕' : '🎉'}</div>
-          <p>{open.length ? `${open.length} übersprungen` : 'Alle Adressen sind zugeordnet.'}</p>
-          <div className="button-row" style={{ justifyContent: 'center' }}>
+          <div className="big">{open.length ? '☕' : '🏆'}</div>
+          <h2>{open.length ? 'Kurze Pause?' : 'Geschafft!'}</h2>
+          <p>{open.length ? `${open.length} übersprungen – die laufen nicht weg.` : 'Alle Adressen sind zugeordnet. Richtig stark! 🎉'}</p>
+          <div className="button-row center">
             {open.length > 0 && (
               <button className="btn" onClick={() => setSkipped(new Set())}>
                 Nochmal ansehen
@@ -75,7 +76,8 @@ export default function AssignView() {
       { ...target, contacts: match ? [...match.contacts, ...contacts] : contacts },
       [current.id!, ...extra],
     )
-    toast(match ? `Zu ${match.name} hinzugefügt` : `✓ ${kid.trim()}`)
+    toast(match ? `Zu ${match.name} hinzugefügt 🤝` : `${kid.trim()} ist dabei! 🎈`)
+    if (open.length - 1 - extra.size <= 0) celebrate()
   }
 
   async function remove() {
@@ -133,7 +135,7 @@ export default function AssignView() {
           )
         )}
 
-        <label className="field" style={{ marginBottom: 0 }}>
+        <label className="field">
           <span>Elternteil</span>
           <input
             value={person}
@@ -171,7 +173,7 @@ export default function AssignView() {
           Später
         </button>
         <button className="btn primary" onClick={next} disabled={!kid.trim()}>
-          Weiter
+          Weiter →
         </button>
       </div>
       <div className="actions">
