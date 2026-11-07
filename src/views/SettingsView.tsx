@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { IconImport, IconSettings, TopBar, celebrate, cheer, greeting, toast } from '../components'
+import { ActionBar, IconImport, IconSettings, TopBar, celebrate, cheer, greeting, toast } from '../components'
 import { createBackup, db, defaultSettings, deleteAllData, now, restoreBackup, updateSettings, type Settings } from '../lib/db'
 import { daysSince, formatDate, isIOS, isStandalone, saveFile, today } from '../lib/util'
 
@@ -80,10 +80,18 @@ export default function SettingsView() {
             ))}
           </select>
         </label>
-        <button className="btn primary block" onClick={save} disabled={!dirty}>
-          {dirty ? 'Speichern' : 'Alles gespeichert ✓'}
-        </button>
       </div>
+
+      {dirty && (
+        <ActionBar overTabbar>
+          <button className="btn" onClick={() => setDraft({ ...defaultSettings, ...stored })}>
+            Verwerfen
+          </button>
+          <button className="btn primary" onClick={save}>
+            Speichern
+          </button>
+        </ActionBar>
+      )}
 
       <Backup lastBackupAt={stored.lastBackupAt} lastChangeAt={stored.lastChangeAt} />
       <Import />

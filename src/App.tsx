@@ -18,6 +18,8 @@ export default function App() {
   const [section = 'kinder', param] = useRoute()
   const tab = ['kind', 'kinder', 'import', 'zuordnen'].includes(section) ? 'kinder' : ['einstellungen'].includes(section) ? 'einstellungen' : 'nachrichten'
   const isMainScreen = ['kinder', 'nachrichten', 'einstellungen'].includes(section)
+  // Auf Bearbeiten-Seiten nimmt die Speicherleiste den Platz der Tab-Leiste ein.
+  const isEditScreen = ['kind', 'nachricht'].includes(section)
 
   // Jeder Bereich hat seine eigene Farbe (siehe styles.css).
   useEffect(() => {
@@ -64,7 +66,7 @@ export default function App() {
           {view}
         </div>
       </main>
-      <div className="tabbar">
+      <div className="tabbar" hidden={isEditScreen}>
         <nav>
           <a href="#/kinder" className={`t-kinder ${tab === 'kinder' ? 'active' : ''}`}>
             <span className="pill">

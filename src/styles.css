@@ -338,6 +338,54 @@ p {
   padding: 0 var(--s-1);
 }
 
+/* ---------- Aktionsleiste (Speichern immer griffbereit) ---------- */
+
+.action-bar {
+  position: fixed;
+  left: var(--s-3);
+  right: var(--s-3);
+  bottom: calc(env(safe-area-inset-bottom) + var(--s-3));
+  z-index: 11;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  gap: var(--s-2);
+  padding: var(--s-2);
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-lg);
+  animation: bar-in 0.35s var(--ease-bounce) both;
+}
+
+.action-bar.over-tabbar {
+  bottom: calc(env(safe-area-inset-bottom) + var(--s-3) + var(--tabbar) + var(--s-2));
+}
+
+.action-bar.keyboard {
+  animation: none;
+}
+
+.action-bar .btn {
+  flex: 1;
+  min-width: 0;
+  min-height: 52px;
+  border-radius: var(--r-lg);
+}
+
+.action-bar .btn.primary {
+  flex: 2;
+}
+
+@keyframes bar-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+
 .tabbar a {
   --c: var(--muted);
   flex: 1;
@@ -1650,3 +1698,8 @@ details textarea {
 .c5 { --c: var(--violet); }
 .c6 { --c: var(--sky); }
 .c7 { --c: var(--orange); }
+
+/* Platz schaffen, damit die Aktionsleiste über der Tab-Leiste nichts verdeckt */
+body:has(.action-bar.over-tabbar) .app {
+  padding-bottom: calc(var(--tabbar) + env(safe-area-inset-bottom) + var(--s-10) + var(--s-10) + var(--s-10));
+}

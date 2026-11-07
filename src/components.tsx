@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 export function TopBar({
   title,
@@ -207,6 +208,44 @@ export function BackButton({ to, label = 'Zurück' }: { to: string; label?: stri
     <a className="link-btn back" href={`#${to}`}>
       <IconBack /> {label}
     </a>
+  )
+}
+
+/* ---------- Schwebende Aktionsleiste (Speichern immer griffbereit) ---------- */
+
+/**
+ * Hält die wichtigsten Knöpfe einer Bearbeiten-Seite unten am Bildschirm fest –
+ * dort, wo der Daumen ist. Auf Bearbeiten-Seiten ersetzt sie die Tab-Leiste,
+ * mit `overTabbar` schwebt sie darüber. Ist die Bildschirmtastatur offen,
+ * rutscht sie mit nach oben.
+ */
+export function ActionBar({ children, overTabbar }: { children: ReactNode; overTabbar?: boolean }) {
+  const [keyboard, setKeyboard] = useState(0)
+
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    const update = () => {
+      const covered = window.innerHeight - vv.height - vv.offsetTop
+      setKeyboard(covered > 80 ? covered : 0)
+    }
+    update()
+    vv.addEventListener('resize', update)
+    vv.addEventListener('scroll', update)
+    return () => {
+      vv.removeEventListener('resize', update)
+      vv.removeEventListener('scroll', update)
+    }
+  }, [])
+
+  return createPortal(
+    <div
+      className={`action-bar ${overTabbar ? 'over-tabbar' : ''} ${keyboard ? 'keyboard' : ''}`}
+      style={keyboard ? { bottom: keyboard + 8 } : undefined}
+    >
+      {children}
+    </div>,
+    document.body,
   )
 }
 

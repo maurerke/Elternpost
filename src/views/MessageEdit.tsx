@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { BackButton, TopBar, toast } from '../components'
+import { ActionBar, BackButton, TopBar, toast } from '../components'
 import { db, deleteMessage, now, saveMessage, type Message } from '../lib/db'
 import { go, groupsOf, recipientEmails, today } from '../lib/util'
 
@@ -104,11 +104,6 @@ export default function MessageEdit({ id }: { id?: number }) {
         small
         title={id === undefined ? 'Neue Nachricht' : 'Nachricht'}
         left={<BackButton to="/nachrichten" />}
-        right={
-          <button className="link-btn" onClick={saveDraft}>
-            Sichern
-          </button>
-        }
       />
 
       <div className="segmented">
@@ -193,10 +188,16 @@ export default function MessageEdit({ id }: { id?: number }) {
       )}
       <p className="stats">💌 Geht an {count} E-Mail-Adressen.</p>
 
-      <div className="actions">
-        <button className="btn primary block" onClick={next} disabled={!canContinue}>
-          Weiter zur Vorschau →
+      <ActionBar>
+        <button className="btn" onClick={saveDraft}>
+          Entwurf sichern
         </button>
+        <button className="btn primary" onClick={next} disabled={!canContinue}>
+          Vorschau →
+        </button>
+      </ActionBar>
+
+      <div className="actions">
         <button className="btn danger block" onClick={remove}>
           {message.id ? 'Nachricht löschen' : 'Verwerfen'}
         </button>

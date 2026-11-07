@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { BackButton, Sheet, TopBar, colorOf, toast } from '../components'
+import { ActionBar, BackButton, Sheet, TopBar, colorOf, toast } from '../components'
 import {
   db,
   deleteChild,
@@ -140,11 +140,6 @@ export default function ChildEdit({ id }: { id?: number }) {
         small
         title={id === undefined ? 'Neues Kind' : wasOpen ? 'Kind eintragen' : 'Bearbeiten'}
         left={<BackButton to="/kinder" />}
-        right={
-          <button className="link-btn bold" onClick={save} disabled={!canSave}>
-            Fertig
-          </button>
-        }
       />
 
       <div className="card">
@@ -314,11 +309,14 @@ export default function ChildEdit({ id }: { id?: number }) {
         </>
       )}
 
-      <div className="actions">
-        <button className="btn primary block" onClick={save} disabled={!canSave}>
-          Speichern
+      <ActionBar>
+        <a className="btn" href="#/kinder">
+          Abbrechen
+        </a>
+        <button className="btn primary" onClick={save} disabled={!canSave}>
+          {id === undefined || wasOpen ? 'Hinzufügen' : 'Speichern'}
         </button>
-      </div>
+      </ActionBar>
 
       {picker && (
         <Picker
