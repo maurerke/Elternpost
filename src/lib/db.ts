@@ -12,6 +12,7 @@ export interface Contact {
 
 export interface Child {
   id?: number
+  /** Leer = aus dem alten Verteiler importiert, Kind noch nicht eingetragen. */
   name: string
   group?: string
   joinedAt?: string
@@ -80,6 +81,15 @@ db.version(1).stores({
   settings: 'id',
 })
 
+// Früher bekamen importierte Adressen die Adresse als Kindnamen – jetzt bleibt der Name leer.
+db.version(2)
+  .stores({
+    children: '++id, name, group',
+    messages: '++id, status, sentAt, createdAt',
+    settings: 'id',
+  })
+  .upgrade((tx) => tx.table('children').toCollection().modify((c: Child) => normalizeChild(c)))
+
 db.on('populate', (tx) => {
   tx.table('settings').add(defaultSettings)
 })
@@ -91,6 +101,52 @@ export const newId = () =>
   typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()
     : Date.now().toString(36) + Math.random().toString(36).slice(2)
+
+const IMPORT_NOTE = 'Aus altem Verteiler importiert'
+
+export function normalizeChild(c: Child): Child {
+  const name = c.name?.trim().toLowerCase() ?? ''
+  if (name.includes('@') && c.contacts.some((k) => k.value.trim().toLowerCase() === name)) {
+    c.name = ''
+    if (c.note?.startsWith(IMPORT_NOTE)) c.note = ''
+  }
+  return c
+}
+
+/** Noch kein Kind eingetragen – nur Adressen aus dem Import. */
+export const isOpen = (c: Child) => !c.name.trim()
+
+export const firstEmail = (c: Child) => c.contacts.find((k) => k.kind === 'email')?.value ?? c.contacts[0]?.value ?? ''
+
+export const displayName = (c: Child) => c.name.trim() || firstEmail(c) || 'Ohne Namen'
+
+const contactKey = (c: Pick<Contact, 'kind' | 'value'>) => `${c.kind}:${c.value.trim().toLowerCase()}`
+
+/**
+ * Führt Einträge zusammen: Alle Kontakte von `sourceIds` wandern zu `target`, die Quellen werden gelöscht.
+ * `target` darf ungespeicherte Änderungen enthalten (z. B. einen neuen Namen).
+ */
+export async function mergeChildren(target: Child, sourceIds: number[]): Promise<number> {
+  const others = sourceIds.filter((id) => id !== target.id)
+  let id = target.id as number
+  await db.transaction('rw', db.children, async () => {
+    const sources = (await db.children.bulkGet(others)).filter((c): c is Child => !!c)
+    const known = new Set(target.contacts.map(contactKey))
+    const contacts = [...target.contacts]
+    for (const source of sources) {
+      for (const contact of source.contacts) {
+        if (known.has(contactKey(contact))) continue
+        known.add(contactKey(contact))
+        contacts.push(contact)
+      }
+    }
+    const notes = [...new Set([target.note, ...sources.map((s) => s.note)].map((n) => n?.trim()).filter(Boolean))]
+    id = (await db.children.put({ ...target, contacts, note: notes.join('\n'), updatedAt: now() })) as number
+    await db.children.bulkDelete(others)
+  })
+  await touch()
+  return id
+}
 
 /** Merkt sich, dass sich Daten geändert haben (für die Backup-Erinnerung). */
 export const touch = () => db.settings.update('main', { lastChangeAt: now() })
@@ -158,7 +214,7 @@ export async function restoreBackup(data: unknown) {
   await db.transaction('rw', db.children, db.messages, db.settings, async () => {
     await db.children.clear()
     await db.messages.clear()
-    await db.children.bulkAdd(backup.children)
+    await db.children.bulkAdd(backup.children.map(normalizeChild))
     await db.messages.bulkAdd(backup.messages ?? [])
     await db.settings.put({
       ...defaultSettings,

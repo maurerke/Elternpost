@@ -1,7 +1,21 @@
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { BackButton, TopBar, toast } from '../components'
-import { db, deleteChild, newId, now, saveChild, type Child, type Contact, type ContactKind } from '../lib/db'
+import { BackButton, Sheet, TopBar, toast } from '../components'
+import {
+  db,
+  deleteChild,
+  displayName,
+  firstEmail,
+  isOpen,
+  mergeChildren,
+  newId,
+  now,
+  saveChild,
+  type Child,
+  type Contact,
+  type ContactKind,
+} from '../lib/db'
+import { guessPerson, related } from '../lib/guess'
 import { formatDate, go, groupsOf, isValidEmail, today } from '../lib/util'
 
 const emptyChild = (): Child => ({
@@ -18,9 +32,17 @@ const emptyChild = (): Child => ({
 export default function ChildEdit({ id }: { id?: number }) {
   const allChildren = useLiveQuery(() => db.children.toArray(), [])
   const [child, setChild] = useState<Child | null>(id === undefined ? emptyChild() : null)
+  const [wasOpen, setWasOpen] = useState(false)
+  /** Einträge „ohne Kind“, deren Adressen beim Speichern hierher wandern */
+  const [absorb, setAbsorb] = useState<number[]>([])
+  const [picker, setPicker] = useState<'adressen' | 'kind' | null>(null)
 
   useEffect(() => {
-    if (id !== undefined) db.children.get(id).then((c) => setChild(c ?? null))
+    if (id !== undefined)
+      db.children.get(id).then((c) => {
+        setChild(c ?? null)
+        setWasOpen(!!c && isOpen(c))
+      })
   }, [id])
 
   if (!child) return <TopBar small title="" left={<BackButton to="/kinder" />} />
@@ -36,20 +58,66 @@ export default function ChildEdit({ id }: { id?: number }) {
   const removeContact = (contactId: string) => set({ contacts: child.contacts.filter((c) => c.id !== contactId) })
 
   const invalidEmails = child.contacts.filter((c) => c.kind === 'email' && c.value.trim() && !isValidEmail(c.value))
-  const canSave = child.name.trim().length > 0 && invalidEmails.length === 0
+  const hasContact = child.contacts.some((c) => c.value.trim())
+  const canSave = (child.name.trim().length > 0 || hasContact) && invalidEmails.length === 0
+
+  const others = (allChildren ?? []).filter((c) => c.id !== child.id)
+  const namedOthers = others.filter((c) => !isOpen(c))
+  const sameName = child.name.trim()
+    ? namedOthers.find((c) => c.name.trim().toLowerCase() === child.name.trim().toLowerCase())
+    : undefined
+  const openEntries = others.filter((c) => isOpen(c) && c.active && !absorb.includes(c.id!))
+  const personGuesses = [
+    ...new Set(
+      child.contacts
+        .filter((c) => c.kind === 'email' && !c.person?.trim())
+        .map((c) => guessPerson(c.value))
+        .filter((p): p is string => !!p),
+    ),
+  ]
+
+  const cleaned = (): Child => ({
+    ...child,
+    name: child.name.trim(),
+    group: child.group?.trim(),
+    contacts: child.contacts
+      .filter((c) => c.value.trim())
+      .map((c) => ({ ...c, value: c.value.trim(), person: c.person?.trim() || undefined })),
+  })
 
   async function save() {
     if (!child || !canSave) return
-    await saveChild({
-      ...child,
-      name: child.name.trim(),
-      group: child.group?.trim(),
-      contacts: child.contacts
-        .filter((c) => c.value.trim())
-        .map((c) => ({ ...c, value: c.value.trim(), person: c.person?.trim() || undefined })),
-    })
+    if (absorb.length) await mergeChildren(cleaned(), absorb)
+    else await saveChild(cleaned())
     toast(id === undefined ? 'Kind hinzugefügt' : 'Gespeichert')
     go('/kinder')
+  }
+
+  /** Alles von hier zu einem bestehenden Kind verschieben. */
+  async function moveTo(target: Child) {
+    if (!child) return
+    const sources = [...(child.id !== undefined ? [child.id] : []), ...absorb]
+    await mergeChildren({ ...target, contacts: [...target.contacts, ...cleaned().contacts] }, sources)
+    toast(`Zu ${target.name} hinzugefügt`)
+    go('/kinder')
+  }
+
+  /** Adressen eines Eintrags „ohne Kind“ hierher holen (wird beim Speichern übernommen). */
+  function takeOver(source: Child) {
+    if (!child) return
+    const known = new Set(child.contacts.map((c) => c.value.trim().toLowerCase()))
+    const contacts = child.contacts.filter((c) => c.value.trim())
+    set({ contacts: [...contacts, ...source.contacts.filter((c) => !known.has(c.value.trim().toLowerCase()))] })
+    setAbsorb([...absorb, source.id!])
+    setPicker(null)
+  }
+
+  function applyPersonGuess(person: string) {
+    set({
+      contacts: child!.contacts.map((c) =>
+        !c.person?.trim() && c.kind === 'email' && guessPerson(c.value) === person ? { ...c, person } : c,
+      ),
+    })
   }
 
   async function setActive(active: boolean) {
@@ -59,7 +127,7 @@ export default function ChildEdit({ id }: { id?: number }) {
 
   async function remove() {
     if (!child?.id) return
-    if (!confirm(`${child.name} mit allen Kontaktdaten endgültig löschen?`)) return
+    if (!confirm(`${displayName(child)} mit allen Kontaktdaten endgültig löschen?`)) return
     await deleteChild(child.id)
     toast('Gelöscht')
     go('/kinder')
@@ -69,7 +137,7 @@ export default function ChildEdit({ id }: { id?: number }) {
     <>
       <TopBar
         small
-        title={id === undefined ? 'Neues Kind' : 'Bearbeiten'}
+        title={id === undefined ? 'Neues Kind' : wasOpen ? 'Kind eintragen' : 'Bearbeiten'}
         left={<BackButton to="/kinder" />}
         right={
           <button className="link-btn bold" onClick={save} disabled={!canSave}>
@@ -81,8 +149,26 @@ export default function ChildEdit({ id }: { id?: number }) {
       <div className="card">
         <label className="field">
           <span>Name des Kindes</span>
-          <input value={child.name} onChange={(e) => set({ name: e.target.value })} placeholder="z. B. Emma Müller" autoFocus={id === undefined} />
+          <input
+            value={child.name}
+            onChange={(e) => set({ name: e.target.value })}
+            placeholder="z. B. Emma Müller"
+            autoFocus={id === undefined || wasOpen}
+          />
         </label>
+        {sameName && (
+          <div className="notice info compact">
+            <span className="grow">„{sameName.name}“ gibt es schon.</span>
+            <button className="btn small primary" onClick={() => moveTo(sameName)}>
+              Zusammenführen
+            </button>
+          </div>
+        )}
+        {wasOpen && !child.name.trim() && namedOthers.length > 0 && (
+          <button className="btn block small" style={{ marginBottom: 14 }} onClick={() => setPicker('kind')}>
+            ↪ Gehört zu einem anderen Kind
+          </button>
+        )}
         <div className="two">
           <label className="field">
             <span>Gruppe</span>
@@ -121,7 +207,7 @@ export default function ChildEdit({ id }: { id?: number }) {
                 />
                 <input
                   className="person"
-                  placeholder="Elternteil (optional), z. B. Mama Anna"
+                  placeholder="Elternteil (optional)"
                   value={contact.person ?? ''}
                   list={`persons-${child.id ?? 'neu'}`}
                   onChange={(e) => updateContact(contact.id, { person: e.target.value })}
@@ -138,6 +224,15 @@ export default function ChildEdit({ id }: { id?: number }) {
             <option key={p} value={p} />
           ))}
         </datalist>
+        {personGuesses.length > 0 && (
+          <div className="suggest">
+            {personGuesses.map((p) => (
+              <button key={p} className="chip suggest" onClick={() => applyPersonGuess(p)}>
+                {p}?
+              </button>
+            ))}
+          </div>
+        )}
         <div className="button-row" style={{ marginTop: 12 }}>
           <button className="btn small" onClick={() => addContact('email')}>
             + E-Mail
@@ -145,6 +240,11 @@ export default function ChildEdit({ id }: { id?: number }) {
           <button className="btn small" onClick={() => addContact('phone')}>
             + Telefon
           </button>
+          {openEntries.length > 0 && (
+            <button className="btn small" onClick={() => setPicker('adressen')}>
+              + Aus Verteiler
+            </button>
+          )}
         </div>
         {invalidEmails.length > 0 && <p className="hint" style={{ color: 'var(--danger)' }}>Bitte E-Mail-Adresse prüfen.</p>}
       </div>
@@ -157,7 +257,6 @@ export default function ChildEdit({ id }: { id?: number }) {
           placeholder="z. B. „Aufnahme per Mail gewünscht am 12.10.“"
           style={{ minHeight: 80 }}
         />
-        <p className="hint">Tipp: Notiere, wann und wie die Eltern in den Verteiler wollten – so ist die Einwilligung dokumentiert.</p>
       </div>
 
       {id !== undefined && (
@@ -170,9 +269,8 @@ export default function ChildEdit({ id }: { id?: number }) {
                   <span className="badge ok">Aktiv</span> bekommt alle Nachrichten.
                 </p>
                 <button className="btn block" onClick={() => setActive(false)}>
-                  Kind hat die Kita verlassen
+                  Hat die Kita verlassen
                 </button>
-                <p className="hint">Es bekommt dann keine Mails mehr. Die Daten bleiben noch eine Weile, falls es ein Versehen war.</p>
               </>
             ) : (
               <>
@@ -198,6 +296,64 @@ export default function ChildEdit({ id }: { id?: number }) {
           Speichern
         </button>
       </div>
+
+      {picker && (
+        <Picker
+          title={picker === 'kind' ? 'Zu welchem Kind?' : 'Adresse dazuholen'}
+          entries={picker === 'kind' ? namedOthers : openEntries}
+          suggested={related(child, others)}
+          onPick={picker === 'kind' ? moveTo : takeOver}
+          onClose={() => setPicker(null)}
+        />
+      )}
     </>
+  )
+}
+
+/** Liste zum Antippen, passende Vorschläge zuerst. */
+function Picker({
+  title,
+  entries,
+  suggested,
+  onPick,
+  onClose,
+}: {
+  title: string
+  entries: Child[]
+  suggested: Child[]
+  onPick: (c: Child) => void
+  onClose: () => void
+}) {
+  const [query, setQuery] = useState('')
+  const q = query.trim().toLowerCase()
+  const hint = new Set(suggested.map((c) => c.id))
+  const sorted = entries
+    .filter(
+      (c) =>
+        !q || c.name.toLowerCase().includes(q) || c.contacts.some((k) => `${k.value} ${k.person ?? ''}`.toLowerCase().includes(q)),
+    )
+    .sort((a, b) => Number(hint.has(b.id)) - Number(hint.has(a.id)) || displayName(a).localeCompare(displayName(b), 'de'))
+
+  return (
+    <Sheet title={title} onClose={onClose}>
+      <input className="search" type="search" placeholder="Suchen" value={query} onChange={(e) => setQuery(e.target.value)} />
+      <div className="list">
+        {sorted.length === 0 && <div className="empty">Nichts gefunden.</div>}
+        {sorted.map((c) => {
+          const persons = [...new Set(c.contacts.map((k) => k.person).filter(Boolean))].join(', ')
+          const open = isOpen(c)
+          return (
+            <button key={c.id} className="row" onClick={() => onPick(c)}>
+              <div className={`avatar ${open ? 'open' : ''}`}>{open ? '?' : c.name.trim().charAt(0).toUpperCase()}</div>
+              <div className="main">
+                <div className={`title ${open ? 'light' : ''}`}>{displayName(c)}</div>
+                {(persons || !open) && <div className="sub">{persons || firstEmail(c)}</div>}
+              </div>
+              {hint.has(c.id) && <span className="badge ok">passt?</span>}
+            </button>
+          )
+        })}
+      </div>
+    </Sheet>
   )
 }

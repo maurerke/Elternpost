@@ -82,3 +82,47 @@ export function BackButton({ to, label = 'Zurück' }: { to: string; label?: stri
     </a>
   )
 }
+
+export const IconImport = () =>
+  svg(
+    <>
+      <path d="M12 4v11" />
+      <path d="M7.5 10.5L12 15l4.5-4.5" />
+      <path d="M4.5 15.5v2A2.5 2.5 0 0 0 7 20h10a2.5 2.5 0 0 0 2.5-2.5v-2" />
+    </>,
+  )
+
+/* ---------- Auswahlfenster von unten ---------- */
+
+export function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKey)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = ''
+    }
+  }, [onClose])
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <div className="sheet" role="dialog" aria-label={title} onClick={(e) => e.stopPropagation()}>
+        <header>
+          <h2>{title}</h2>
+          <button className="link-btn" onClick={onClose}>
+            Abbrechen
+          </button>
+        </header>
+        <div className="sheet-body">{children}</div>
+      </div>
+    </div>
+  )
+}
+
+export function Progress({ value, max }: { value: number; max: number }) {
+  return (
+    <div className="progress" role="progressbar" aria-valuenow={value} aria-valuemax={max}>
+      <div style={{ width: `${max ? (value / max) * 100 : 0}%` }} />
+    </div>
+  )
+}

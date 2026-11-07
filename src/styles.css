@@ -662,3 +662,228 @@ details summary {
     padding-top: 24px;
   }
 }
+
+/* ---------- Import & Zuordnen ---------- */
+
+.btn svg,
+.icon-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+.icon-btn.top {
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  width: 44px;
+  height: 44px;
+}
+
+.empty.start .actions {
+  max-width: 320px;
+  margin: 24px auto 0;
+}
+
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 44px 16px;
+  margin-bottom: 14px;
+  border: 2px dashed var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.dropzone svg {
+  width: 44px;
+  height: 44px;
+  color: var(--accent);
+}
+
+.dropzone span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.dropzone.over,
+.dropzone:active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.import-summary {
+  text-align: center;
+}
+
+.big-number {
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--accent);
+}
+
+.row.sub-row {
+  color: var(--muted);
+  font-size: 14px;
+  cursor: default;
+}
+
+.avatar.open {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.row .title.light {
+  font-weight: 500;
+}
+
+.progress {
+  height: 6px;
+  border-radius: 99px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.progress > div {
+  height: 100%;
+  background: var(--ok);
+  border-radius: 99px;
+  transition: width 0.3s;
+}
+
+.app > .progress {
+  margin: 0 4px 14px;
+}
+
+.card.todo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.card.todo .grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.todo-title {
+  margin-bottom: 8px;
+}
+
+.assign-email {
+  font-size: 18px;
+  font-weight: 650;
+  word-break: break-all;
+  margin-bottom: 16px;
+}
+
+.field-label {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--muted);
+  margin: 16px 2px 6px;
+}
+
+.suggest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 2px;
+}
+
+.chip.suggest {
+  padding: 5px 12px;
+  font-size: 14px;
+  border-style: dashed;
+  color: var(--accent);
+  word-break: break-all;
+  text-align: left;
+}
+
+.chip.suggest.on {
+  border-style: solid;
+  background: var(--ok-soft);
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+.label + .suggest,
+label.field + .suggest {
+  margin-top: -6px;
+  margin-bottom: 14px;
+}
+
+.merge-hint {
+  margin: -6px 2px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ok);
+}
+
+.assign-actions {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 10px;
+}
+
+.notice.compact {
+  padding: 8px 8px 8px 12px;
+  margin-top: -4px;
+}
+
+/* ---------- Sheet ---------- */
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgb(0 0 0 / 35%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 720px;
+  max-height: 85dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border-radius: 18px 18px 0 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  animation: sheet-in 0.2s ease-out;
+}
+
+.sheet header {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px 6px;
+}
+
+.sheet header h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 18px;
+}
+
+.sheet-body {
+  overflow-y: auto;
+  padding: 6px 16px 16px;
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(30%);
+    opacity: 0;
+  }
+}

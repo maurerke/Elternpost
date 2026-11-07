@@ -33,5 +33,6 @@ Adresse in **Safari** öffnen → **Teilen** → **Zum Home-Bildschirm**. Danach
 
 - `src/lib/db.ts` – Datenmodell, Speicherung (Dexie/IndexedDB), Sicherung
 - `src/lib/newsletter.ts` – HTML-/Text-Vorlage des Newsletters, mailto-Link
-- `src/lib/importer.ts` – Import des alten Verteilers
+- `src/lib/importer.ts` – Import des alten Verteilers (vCard `.vcf` oder Text); jede Adresse wird erst ein Eintrag „ohne Kind“
+- `src/lib/guess.ts` – Vorschläge beim Zuordnen (Elternname aus der Adresse, „gleiche Familie?“)
 - `src/views/` – die Bildschirme

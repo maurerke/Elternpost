@@ -4,6 +4,8 @@ import { db } from './lib/db'
 import { daysSince, useRoute, useSettings } from './lib/util'
 import ChildrenView from './views/ChildrenView'
 import ChildEdit from './views/ChildEdit'
+import ImportView from './views/ImportView'
+import AssignView from './views/AssignView'
 import MessagesView from './views/MessagesView'
 import MessageEdit from './views/MessageEdit'
 import SendView from './views/SendView'
@@ -13,13 +15,19 @@ const BACKUP_REMINDER_DAYS = 7
 
 export default function App() {
   const [section = 'kinder', param] = useRoute()
-  const tab = ['kind', 'kinder'].includes(section) ? 'kinder' : ['einstellungen'].includes(section) ? 'einstellungen' : 'nachrichten'
+  const tab = ['kind', 'kinder', 'import', 'zuordnen'].includes(section) ? 'kinder' : ['einstellungen'].includes(section) ? 'einstellungen' : 'nachrichten'
   const isMainScreen = ['kinder', 'nachrichten', 'einstellungen'].includes(section)
 
   let view
   switch (section) {
     case 'kind':
       view = <ChildEdit key={param} id={param === 'neu' ? undefined : Number(param)} />
+      break
+    case 'import':
+      view = <ImportView />
+      break
+    case 'zuordnen':
+      view = <AssignView />
       break
     case 'nachrichten':
       view = <MessagesView />

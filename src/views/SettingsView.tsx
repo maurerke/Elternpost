@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { TopBar, toast } from '../components'
+import { IconImport, TopBar, toast } from '../components'
 import { createBackup, db, defaultSettings, deleteAllData, now, restoreBackup, updateSettings, type Settings } from '../lib/db'
-import { applyImport, parseImport } from '../lib/importer'
 import { daysSince, formatDate, isIOS, isStandalone, saveFile, today } from '../lib/util'
 
 export default function SettingsView() {
@@ -191,32 +190,12 @@ function Backup({ lastBackupAt, lastChangeAt }: { lastBackupAt?: string; lastCha
 }
 
 function Import() {
-  const [text, setText] = useState('')
-  const rows = parseImport(text)
-
-  async function run() {
-    const { created, updated } = await applyImport(rows)
-    toast(`${created} neu angelegt, ${updated} ergänzt`)
-    setText('')
-  }
-
   return (
     <>
-      <div className="section-title">Alten Verteiler importieren</div>
-      <div className="card">
-        <p className="hint" style={{ marginTop: 0, marginBottom: 10 }}>
-          Eine Zeile pro Kontakt: <b>Kind; Elternteil; E-Mail; Telefon</b> – alles außer der Adresse ist optional. Einfach die Adressliste aus
-          dem Mail-Programm hineinkopieren geht auch, die Kinder kannst du danach zuordnen.
-        </p>
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder={'Emma Müller; Anna Müller; anna@example.de\nEmma Müller; Tom Müller; tom@example.de; 0171 1234567\nmax.mustermann@example.de'}
-        />
-        <button className="btn block" style={{ marginTop: 12 }} disabled={rows.length === 0} onClick={run}>
-          {rows.length ? `${rows.length} Zeilen importieren` : 'Importieren'}
-        </button>
-      </div>
+      <div className="section-title">Verteiler</div>
+      <a className="btn block" href="#/import">
+        <IconImport /> Kontakte importieren
+      </a>
     </>
   )
 }
