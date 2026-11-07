@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ActionBar, IconImport, IconSettings, TopBar, celebrate, cheer, greeting, toast } from '../components'
-import { createBackup, db, defaultSettings, deleteAllData, now, restoreBackup, updateSettings, type Settings } from '../lib/db'
+import { createBackup, db, defaultSettings, deleteAllData, now, readBackupFile, restoreBackup, updateSettings, type Settings } from '../lib/db'
 import { daysSince, formatDate, isIOS, isStandalone, saveFile, today } from '../lib/util'
 
 export default function SettingsView() {
@@ -17,7 +17,7 @@ export default function SettingsView() {
   if (!draft || !stored) return header
 
   const set = (changes: Partial<Settings>) => setDraft({ ...draft, ...changes })
-  const { lastBackupAt: _b, lastChangeAt: _c, ...editable } = draft
+  const { lastBackupAt: _b, lastChangeAt: _c, welcomeDone: _w, ...editable } = draft
   const dirty = Object.entries(editable).some(([k, v]) => (stored as unknown as Record<string, unknown>)[k] !== v)
 
   async function save() {
@@ -138,9 +138,9 @@ function Backup({ lastBackupAt, lastChangeAt }: { lastBackupAt?: string; lastCha
 
   async function importBackup(file: File) {
     try {
-      const data = JSON.parse(await file.text())
+      const backup = await readBackupFile(file)
       if (!confirm('Alle aktuellen Daten durch diese Sicherung ersetzen?')) return
-      await restoreBackup(data)
+      await restoreBackup(backup)
       toast('Sicherung wiederhergestellt 🎉')
       setTimeout(() => location.reload(), 600)
     } catch (e) {

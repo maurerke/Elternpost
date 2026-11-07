@@ -114,7 +114,9 @@ export async function saveFile(filename: string, content: string, type: string) 
   const file = new File([content], filename, { type })
   if (navigator.canShare?.({ files: [file] })) {
     try {
-      await navigator.share({ files: [file], title: filename })
+      // Bewusst nur die Datei teilen: Mit `title` oder `text` legt iOS bei
+      // „In Dateien sichern“ zusätzlich eine .txt-Datei mit diesem Text ab.
+      await navigator.share({ files: [file] })
       return true
     } catch (e) {
       if ((e as Error).name === 'AbortError') return false

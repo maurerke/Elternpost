@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { IconMail, IconPlus, TopBar, greeting } from '../components'
+import { Fab, IconMail, IconPlus, TopBar, greeting } from '../components'
 import { db, type Message } from '../lib/db'
 import { formatDate, go } from '../lib/util'
 
@@ -82,9 +82,7 @@ export default function MessagesView() {
         </>
       )}
 
-      <button className="fab" aria-label="Neue Nachricht" title="Neue Nachricht" onClick={() => go('/nachricht/neu')}>
-        <IconPlus />
-      </button>
+      <Fab label="Neue Nachricht" onClick={() => go('/nachricht/neu')} />
     </>
   )
 }

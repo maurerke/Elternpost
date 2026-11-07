@@ -55,6 +55,8 @@ export interface Settings {
   deleteAfterMonths: number
   lastBackupAt?: string
   lastChangeAt?: string
+  /** Die Einführung beim ersten Start wurde abgeschlossen. */
+  welcomeDone?: boolean
 }
 
 export const defaultSettings: Settings = {
@@ -206,11 +208,22 @@ export async function createBackup(): Promise<Backup> {
   }
 }
 
-export async function restoreBackup(data: unknown) {
+/** Liest eine Sicherungsdatei und prüft, ob sie wirklich von Elternpost stammt. */
+export async function readBackupFile(file: File): Promise<Backup> {
+  let data: unknown
+  try {
+    data = JSON.parse(await file.text())
+  } catch {
+    throw new Error('Die Datei konnte nicht gelesen werden – ist das eine Sicherung von Elternpost (.json)?')
+  }
   const backup = data as Backup
   if (backup?.app !== 'elternpost' || !Array.isArray(backup.children)) {
     throw new Error('Das ist keine Sicherung von Elternpost.')
   }
+  return backup
+}
+
+export async function restoreBackup(backup: Backup) {
   await db.transaction('rw', db.children, db.messages, db.settings, async () => {
     await db.children.clear()
     await db.messages.clear()
@@ -222,6 +235,7 @@ export async function restoreBackup(data: unknown) {
       id: 'main',
       lastBackupAt: backup.exportedAt,
       lastChangeAt: backup.exportedAt,
+      welcomeDone: true,
     })
   })
 }

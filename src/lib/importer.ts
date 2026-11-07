@@ -11,9 +11,11 @@ export interface ImportRow {
   contacts: Omit<Contact, 'id'>[]
 }
 
-/** Erkennt vCard (.vcf) oder einfache Zeilen. */
+/** Erkennt vCard (.vcf), CSV-Export eines Mail-Programms (mit Kopfzeile) oder einfache Zeilen. */
 export function parseAny(text: string): ImportRow[] {
-  return /BEGIN:VCARD/i.test(text) ? parseVCards(text) : parseLines(text)
+  if (/BEGIN:VCARD/i.test(text)) return parseVCards(text)
+  if (isCsvExport(text)) return parseCsv(text)
+  return parseLines(text)
 }
 
 /* ---------- vCard ---------- */
@@ -81,6 +83,88 @@ export function parseVCards(text: string): ImportRow[] {
     else if (prop === 'N') card.n = value.split(';').map(unescapeValue).join(';')
     else if (prop === 'EMAIL' && isValidEmail(value)) card.emails.push(value.replace(/^mailto:/i, ''))
     else if (prop === 'TEL' && value) card.phones.push(value.replace(/^tel:/i, ''))
+  }
+  return rows
+}
+
+/* ---------- CSV aus Outlook, Gmail, Thunderbird & Co. ---------- */
+
+const stripBom = (text: string) => text.replace(/^\uFEFF/, '')
+
+const firstLine = (text: string) => stripBom(text).split(/\r?\n/).find((l) => l.trim()) ?? ''
+
+/** Kopfzeile ohne Adressen, aber mit einer Spalte für E-Mails – so sehen Exporte aus Mail-Programmen aus. */
+function isCsvExport(text: string) {
+  const head = firstLine(text)
+  return !head.match(EMAIL) && /e-?mail/i.test(head) && /[,;\t]/.test(head)
+}
+
+/** Zerlegt CSV mit Anführungszeichen (auch Zeilenumbrüche darin) in Zeilen und Felder. */
+function splitCsv(text: string): string[][] {
+  const head = firstLine(text)
+  const sep = [',', ';', '\t'].reduce((a, b) => (head.split(b).length > head.split(a).length ? b : a))
+  const rows: string[][] = []
+  let row: string[] = []
+  let field = ''
+  let quoted = false
+  const src = stripBom(text)
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i]
+    if (quoted) {
+      if (ch === '"' && src[i + 1] === '"') {
+        field += '"'
+        i++
+      } else if (ch === '"') quoted = false
+      else field += ch
+    } else if (ch === '"') quoted = true
+    else if (ch === sep) {
+      row.push(field)
+      field = ''
+    } else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && src[i + 1] === '\n') i++
+      row.push(field)
+      rows.push(row)
+      row = []
+      field = ''
+    } else field += ch
+  }
+  row.push(field)
+  rows.push(row)
+  return rows.filter((r) => r.some((f) => f.trim()))
+}
+
+/** Wie bei vCards: Der Name im Adressbuch ist ein Elternteil, das Kind ist noch unbekannt. */
+export function parseCsv(text: string): ImportRow[] {
+  const [header = [], ...lines] = splitCsv(text)
+  const cols = header.map((h) => h.trim().toLowerCase())
+  const col = (re: RegExp) => cols.findIndex((h) => re.test(h))
+  const nameCol = col(/^(name|display name|anzeigename|full name|vollständiger name)$/)
+  const firstCol = col(/^(first name|given name|vorname)$/)
+  const lastCol = col(/^(last name|family name|nachname)$/)
+  const phoneCols = cols.flatMap((h, i) => (/phone|telefon|mobil|handy|^tel/.test(h) && !/type|typ/.test(h) ? [i] : []))
+
+  const rows: ImportRow[] = []
+  for (const cells of lines) {
+    const cell = (i: number) => (i >= 0 ? (cells[i] ?? '').trim() : '')
+    const emails = [...new Set(cells.flatMap((c) => c.match(EMAIL) ?? []))]
+    const phones = [
+      ...new Set(
+        phoneCols
+          .flatMap((i) => cell(i).split(':::'))
+          .map((p) => p.trim())
+          .filter((p) => p.replace(/\D/g, '').length >= 6),
+      ),
+    ]
+    if (!emails.length && !phones.length) continue
+    const name = cell(nameCol) || `${cell(firstCol)} ${cell(lastCol)}`.trim()
+    const person = name && !name.includes('@') ? name : undefined
+    rows.push({
+      person,
+      contacts: [
+        ...emails.map((value) => ({ kind: 'email' as const, value, person })),
+        ...phones.map((value) => ({ kind: 'phone' as const, value, person })),
+      ],
+    })
   }
   return rows
 }

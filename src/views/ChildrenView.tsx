@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { IconImport, IconPeople, IconPlus, ProgressBox, TopBar, colorOf, greeting, toast } from '../components'
+import { Fab, IconImport, IconPeople, ProgressBox, TopBar, colorOf, greeting, toast } from '../components'
 import { db, firstEmail, isOpen, touch, type Child } from '../lib/db'
 import { daysSince, go, groupsOf, recipientEmails, useSettings } from '../lib/util'
+import { StartOptions } from './Welcome'
 
 type Filter = 'aktiv' | 'ausgetreten'
 
@@ -55,16 +56,16 @@ export default function ChildrenView() {
         {header()}
         <div className="empty start">
           <div className="big">🎒</div>
-          <h2>Willkommen bei Elternpost!</h2>
-          <p>Hol dir zuerst die Eltern-Adressen rein – danach erreichst du alle mit einem Fingertipp.</p>
-          <div className="actions">
-            <a className="btn primary block" href="#/import">
-              <IconImport /> Verteiler importieren
-            </a>
-            <button className="btn block" onClick={() => go('/kind/neu')}>
-              + Kind anlegen
-            </button>
-          </div>
+          <h2>Noch niemand im Verteiler</h2>
+          <p>Hol dir die Eltern-Adressen rein – danach erreichst du alle mit einem Fingertipp.</p>
+          <StartOptions
+            fresh={{
+              emoji: '🧸',
+              title: 'Erstes Kind anlegen',
+              hint: 'Name, Gruppe und die Adressen der Eltern selbst eintragen.',
+              onClick: () => go('/kind/neu'),
+            }}
+          />
         </div>
       </>
     )
@@ -190,9 +191,7 @@ export default function ChildrenView() {
         </>
       )}
 
-      <button className="fab" aria-label="Kind hinzufügen" title="Kind hinzufügen" onClick={() => go('/kind/neu')}>
-        <IconPlus />
-      </button>
+      <Fab label="Kind hinzufügen" onClick={() => go('/kind/neu')} />
     </>
   )
 }

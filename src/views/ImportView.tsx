@@ -63,7 +63,7 @@ export default function ImportView() {
               <IconImport />
             </span>
             <b>Kontakte-Datei wählen</b>
-            <span>.vcf-Datei antippen oder hierher ziehen</span>
+            <span>.vcf- oder .csv-Datei antippen oder hierher ziehen</span>
           </button>
           <input
             ref={fileInput}
@@ -76,6 +76,28 @@ export default function ImportView() {
               e.target.value = ''
             }}
           />
+
+          <details className="card">
+            <summary>Wo bekomme ich die Datei her?</summary>
+            <ul className="import-help">
+              <li>
+                <b>iPhone-Kontakte:</b> In der Kontakte-App die Liste (z. B. „Kita“) gedrückt halten → <b>Exportieren</b> → in Dateien sichern.
+              </li>
+              <li>
+                <b>Gmail / Google Kontakte:</b> Auf contacts.google.com die Kontakte oder das Label auswählen → <b>Exportieren</b> → vCard oder
+                Google-CSV.
+              </li>
+              <li>
+                <b>Outlook:</b> Unter <b>Personen</b> → <b>Kontakte verwalten</b> → <b>Kontakte exportieren</b> (CSV).
+              </li>
+              <li>
+                <b>Thunderbird:</b> Im Adressbuch das Buch mit rechts anklicken → <b>Exportieren</b> → CSV oder vCard.
+              </li>
+              <li>
+                Oder einfach die Adressen aus einer alten Rundmail kopieren und unten einfügen.
+              </li>
+            </ul>
+          </details>
 
           <details className="card">
             <summary>oder Adressen einfügen</summary>

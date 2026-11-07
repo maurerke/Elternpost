@@ -201,6 +201,21 @@ export const IconImport = () =>
 
 export const IconPlus = () => svg(<path d="M12 5v14M5 12h14" />)
 
+/**
+ * Runder Plus-Knopf unten rechts über der Tab-Leiste. Er wird direkt in <body>
+ * gehängt: Die Seiten-Animation (.view) setzt ein transform, und darin würde
+ * „position: fixed“ an der Seite statt am Bildschirm kleben – bei langen Listen
+ * landete der Knopf dann irgendwo weit unten.
+ */
+export function Fab({ label, onClick }: { label: string; onClick: () => void }) {
+  return createPortal(
+    <button className="fab" aria-label={label} title={label} onClick={onClick}>
+      <IconPlus />
+    </button>,
+    document.body,
+  )
+}
+
 const IconBack = () => svg(<path d="M15 5l-7 7 7 7" />)
 
 export function BackButton({ to, label = 'Zurück' }: { to: string; label?: string }) {

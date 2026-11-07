@@ -13,6 +13,7 @@ import MessageEdit from './views/MessageEdit'
 import SendView from './views/SendView'
 import SettingsView from './views/SettingsView'
 import InstallGuide from './views/InstallGuide'
+import Welcome from './views/Welcome'
 
 const BACKUP_REMINDER_DAYS = 7
 
@@ -26,9 +27,36 @@ export default function App() {
   const isEditScreen = ['kind', 'nachricht'].includes(section)
 
   // Jeder Bereich hat seine eigene Farbe (siehe styles.css).
+  // Allererster Start (noch gar keine Daten): kurze Einführung statt leerer App.
+  const firstRun = useLiveQuery(async () => {
+    const settings = await db.settings.get('main')
+    if (settings?.welcomeDone) return false
+    const [children, messages] = await Promise.all([db.children.count(), db.messages.count()])
+    return children === 0 && messages === 0
+  }, [])
+  const welcome = !installGuide && firstRun === true
+
   useEffect(() => {
-    document.documentElement.dataset.section = installGuide ? 'install' : tab
-  }, [tab, installGuide])
+    document.documentElement.dataset.section = installGuide ? 'install' : welcome ? 'welcome' : tab
+  }, [tab, installGuide, welcome])
+
+  // Kurz warten, bis klar ist, ob die Einführung kommt – sonst blitzt die leere App auf.
+  if (!installGuide && firstRun === undefined) return <BgDeco />
+
+  if (welcome) {
+    return (
+      <>
+        <BgDeco />
+        <main className="app install-screen">
+          <div className="view">
+            <Welcome />
+          </div>
+        </main>
+        <Toast />
+        <Confetti />
+      </>
+    )
+  }
 
   if (installGuide) {
     return (
