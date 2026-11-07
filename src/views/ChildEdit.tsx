@@ -180,10 +180,32 @@ export default function ChildEdit({ id }: { id?: number }) {
               ))}
             </datalist>
           </label>
-          <label className="field">
-            <span>In der Kita seit</span>
-            <input type="date" value={child.joinedAt ?? ''} onChange={(e) => set({ joinedAt: e.target.value })} />
-          </label>
+          <div className="field">
+            <label className="field-label top" htmlFor="joined-at">
+              In der Kita seit
+            </label>
+            <div className="date-input">
+              <input
+                id="joined-at"
+                type="date"
+                value={child.joinedAt ?? ''}
+                className={child.joinedAt ? 'has-value' : ''}
+                onChange={(e) => set({ joinedAt: e.target.value })}
+                onClick={(e) => {
+                  try {
+                    e.currentTarget.showPicker?.()
+                  } catch {
+                    /* manche Browser erlauben das nicht – dann eben tippen */
+                  }
+                }}
+              />
+              {child.joinedAt && (
+                <button type="button" className="clear-btn" aria-label="Datum entfernen" onClick={() => set({ joinedAt: '' })}>
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

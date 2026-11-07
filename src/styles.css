@@ -138,6 +138,16 @@ html {
   background: var(--bg);
 }
 
+/* Die App soll sich nie seitlich verschieben lassen – wie eine echte App.
+   „clip“ statt „hidden“, damit position: sticky weiter funktioniert. */
+html,
+body {
+  overflow-x: hidden;
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+  max-width: 100%;
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -748,12 +758,15 @@ p {
 
 /* ---------- Formulare ---------- */
 
-label.field {
+label.field,
+div.field {
   display: block;
+  min-width: 0;
   margin-bottom: var(--s-4);
 }
 
-label.field:last-child {
+label.field:last-child,
+div.field:last-child {
   margin-bottom: 0;
 }
 
@@ -768,6 +781,10 @@ label.field > span,
 
 .field-label {
   margin-top: var(--s-4);
+}
+
+.field-label.top {
+  margin-top: 0;
 }
 
 input,
@@ -812,7 +829,56 @@ select:focus {
 }
 
 input[type='date'] {
+  display: block;
+  min-width: 0;
   min-height: 48px;
+}
+
+/* iOS zentriert das Datum sonst und gibt dem Feld eine feste Mindestbreite */
+input[type='date']::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+/* Datumsfeld mit eigenem Löschen-Knopf (der native fehlt auf dem iPhone) */
+.date-input {
+  position: relative;
+}
+
+.date-input input {
+  cursor: pointer;
+}
+
+.date-input input.has-value {
+  padding-right: 40px;
+}
+
+/* Eingebaute Knöpfe ausblenden: Löschen machen wir selbst, und der Kalender
+   öffnet sich beim Antippen des Felds – so bleibt Platz für das Datum. */
+.date-input input::-webkit-clear-button,
+.date-input input::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
+.clear-btn {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--muted) 16%, transparent);
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.clear-btn:active {
+  background: color-mix(in srgb, var(--muted) 28%, transparent);
 }
 
 input[type='search'] {
@@ -849,15 +915,15 @@ input.invalid {
 
 .two {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--s-3);
 }
 
-.two > label.field:last-child {
+.two > .field:last-child {
   margin-bottom: var(--s-4);
 }
 
-.card > .two:last-child > label.field {
+.card > .two:last-child > .field {
   margin-bottom: 0;
 }
 
