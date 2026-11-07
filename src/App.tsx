@@ -1,7 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Confetti, IconMail, IconPeople, IconSettings, Toast } from './components'
 import { db } from './lib/db'
+import { shouldShowInstallGuide } from './lib/install'
 import { daysSince, useRoute, useSettings } from './lib/util'
 import ChildrenView from './views/ChildrenView'
 import ChildEdit from './views/ChildEdit'
@@ -11,20 +12,38 @@ import MessagesView from './views/MessagesView'
 import MessageEdit from './views/MessageEdit'
 import SendView from './views/SendView'
 import SettingsView from './views/SettingsView'
+import InstallGuide from './views/InstallGuide'
 
 const BACKUP_REMINDER_DAYS = 7
 
 export default function App() {
   const [section = 'kinder', param] = useRoute()
-  const tab = ['kind', 'kinder', 'import', 'zuordnen'].includes(section) ? 'kinder' : ['einstellungen'].includes(section) ? 'einstellungen' : 'nachrichten'
+  // Im Handy-Browser zuerst erklären, wie man Elternpost als App installiert.
+  const [installGuide, setInstallGuide] = useState(shouldShowInstallGuide)
+  const tab = ['kind', 'kinder', 'import', 'zuordnen'].includes(section) ? 'kinder' : ['einstellungen', 'installieren'].includes(section) ? 'einstellungen' : 'nachrichten'
   const isMainScreen = ['kinder', 'nachrichten', 'einstellungen'].includes(section)
   // Auf Bearbeiten-Seiten nimmt die Speicherleiste den Platz der Tab-Leiste ein.
   const isEditScreen = ['kind', 'nachricht'].includes(section)
 
   // Jeder Bereich hat seine eigene Farbe (siehe styles.css).
   useEffect(() => {
-    document.documentElement.dataset.section = tab
-  }, [tab])
+    document.documentElement.dataset.section = installGuide ? 'install' : tab
+  }, [tab, installGuide])
+
+  if (installGuide) {
+    return (
+      <>
+        <BgDeco />
+        <main className="app install-screen">
+          <div className="view">
+            <InstallGuide onSkip={() => setInstallGuide(false)} />
+          </div>
+        </main>
+        <Toast />
+        <Confetti />
+      </>
+    )
+  }
 
   let view
   switch (section) {
@@ -49,17 +68,16 @@ export default function App() {
     case 'einstellungen':
       view = <SettingsView />
       break
+    case 'installieren':
+      view = <InstallGuide />
+      break
     default:
       view = <ChildrenView />
   }
 
   return (
     <>
-      <div className="bg-deco" aria-hidden="true">
-        <span />
-        <span />
-        <span />
-      </div>
+      <BgDeco />
       <main className="app">
         <div className="view" key={`${section}/${param ?? ''}`}>
           {isMainScreen && section !== 'einstellungen' && <BackupReminder />}
@@ -93,6 +111,14 @@ export default function App() {
     </>
   )
 }
+
+const BgDeco = () => (
+  <div className="bg-deco" aria-hidden="true">
+    <span />
+    <span />
+    <span />
+  </div>
+)
 
 /** Erinnert ans Sichern, wenn es seit der letzten Sicherung Änderungen gab. */
 function BackupReminder() {

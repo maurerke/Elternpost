@@ -109,15 +109,11 @@ function InstallHint() {
     <div className="notice info">
       <span>📲</span>
       <span className="grow">
-        {isIOS() ? (
-          <>
-            Als App installieren: unten auf <b>Teilen</b> tippen und <b>„Zum Home-Bildschirm“</b> wählen. Danach nur noch über das Icon öffnen –
-            Daten im Browser-Tab und in der App sind getrennt.
-          </>
-        ) : (
-          <>Als App installieren: im Browser-Menü „App installieren“ wählen (Edge/Chrome).</>
-        )}
+        Elternpost als App auf den Home-Bildschirm holen – mit eigenem Icon und auch offline.
       </span>
+      <a className="btn small primary" href="#/installieren">
+        So geht’s
+      </a>
     </div>
   )
 }
